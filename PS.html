@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poweshell | MixerCheck</title>
+    <style>
+        :root {
+            --bg-color: #000000;
+            --panel-bg: #0a0a0a;
+            --text-color: #ffffff;
+            --accent-color: #ff9900;
+            --accent-hover: #ffcc00;
+            --border-color: #333333;
+            --max-width: 1400px;
+            --panel-glow: rgba(255, 153, 0, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            color: var(--text-color);
+            min-height: 100vh;
+            background: #000000;
+            background-attachment: fixed;
+            line-height: 1.6;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Контейнер для частиц */
+        #particles-js {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        @supports (font-variation-settings: normal) {
+            body {
+                font-family: 'Inter var', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            }
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            max-width: var(--max-width);
+            margin: 0 auto;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 32px;
+            font-weight: 700;
+            font-size: 2.2rem;
+            position: relative;
+            padding-bottom: 15px;
+        }
+
+        h1::before {
+            content: 'Powershell';
+            background: linear-gradient(90deg, var(--accent-color), var(--accent-hover));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 2px 10px rgba(255, 153, 0, 0.3);
+            animation: textGlow 3s infinite alternate;
+        }
+
+        h1::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--accent-color), transparent);
+            border-radius: 2px;
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, 
+                rgba(255, 153, 0, 0) 0%, 
+                rgba(255, 204, 0, 0.6) 50%, 
+                rgba(255, 153, 0, 0) 100%);
+            opacity: 0.7;
+        }
+
+        .panel:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7), 
+                        0 0 0 1px rgba(255, 204, 0, 0.1);
+            border-color: rgba(255, 204, 0, 0.2);
+        }
+
+        .panel-title {
+            color: var(--accent-color);
+            margin-top: 0;
+            margin-bottom: 16px;
+            font-weight: 600;
+            font-size: 1.3rem;
+            position: relative;
+            display: inline-block;
+        }
+
+        .panel-title::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-color), transparent);
+            border-radius: 1px;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 153, 0, 0.1);
+            color: var(--accent-color);
+            border: 1px solid rgba(255, 153, 0, 0.3);
+            padding: 6px 14px;
+            cursor: pointer;
+            font-size: 13px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            z-index: 2;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .copy-btn:hover {
+            background: var(--accent-color);
+            color: #000000;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(255, 153, 0, 0.3);
+        }
+
+        .copy-btn.copied {
+            background: var(--accent-color);
+            color: #000000;
+        }
+
+        .copy-btn::before {
+            content: attr(data-label);
+            font-size: 14px;
+            margin-right: 5px;
+        }
+
+        .panel-content {
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--text-color);
+            font-family: 'Fira Code', 'SF Mono', Menlo, monospace;
+            word-break: break-word;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 16px;
+            background: rgba(20, 20, 20, 0.7);
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .panel-content:hover {
+            border-color: rgba(255, 153, 0, 0.1);
+        }
+
+        .panel-content::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .panel-content::-webkit-scrollbar-thumb {
+            background-color: rgba(255, 153, 0, 0.3);
+            border-radius: 3px;
+        }
+
+        .panel-content::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 3px;
+        }
+
+        /* Header styles */
+        .wrapper {
+            width: 100%;
+            background: rgba(10, 10, 10, 0.95);
+            border-bottom: 1px solid rgba(255, 153, 0, 0.2);
+            margin-bottom: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        header.container {
+            max-width: var(--max-width);
+            margin: 0 auto;
+            padding: 15px 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Исправленное меню */
+        .main-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: var(--accent-color);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo::before {
+            content: "⚡";
+            font-size: 1.3rem;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            gap: 10px;
+            margin: 0;
+            padding: 0;
+        }
+
+        nav ul li {
+            position: relative;
+        }
+
+        nav ul li a {
+            color: var(--text-color);
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            border: 1px solid transparent;
+            display: block;
+            position: relative;
+            overflow: hidden;
+        }
+
+        nav ul li a::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 153, 0, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        nav ul li a:hover {
+            background: rgba(255, 153, 0, 0.05);
+            border-color: rgba(255, 153, 0, 0.3);
+            color: var(--accent-color);
+        }
+
+        nav ul li a:hover::before {
+            left: 100%;
+        }
+
+        nav ul li.active a {
+            background: rgba(255, 153, 0, 0.1);
+            border-color: rgba(255, 153, 0, 0.4);
+            color: var(--accent-color);
+        }
+
+        /* Подменю */
+        .submenu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: rgba(20, 20, 20, 0.95);
+            border: 1px solid rgba(255, 153, 0, 0.2);
+            border-radius: 6px;
+            padding: 10px 0;
+            min-width: 200px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        nav ul li:hover .submenu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .submenu li {
+            width: 100%;
+        }
+
+        .submenu a {
+            border: none !important;
+            border-radius: 0 !important;
+            padding: 8px 20px !important;
+        }
+
+        .submenu a:hover {
+            background: rgba(255, 153, 0, 0.1) !important;
+        }
+
+        /* Статистика вверху */
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            gap: 15px;
+        }
+
+        .stat-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            border-radius: 8px;
+            flex: 1;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            border-color: rgba(255, 153, 0, 0.3);
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--accent-color);
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+
+        /* Футер */
+        footer {
+            margin-top: 40px;
+            text-align: center;
+            padding: 20px;
+            border-top: 1px solid rgba(255, 153, 0, 0.1);
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        /* Мобильное меню */
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text-color);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 16px;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+                margin-bottom: 24px;
+            }
+            
+            .panel {
+                padding: 18px;
+            }
+            
+            .panel-content {
+                font-size: 13px;
+                max-height: 300px;
+                padding: 12px;
+            }
+            
+            .copy-btn {
+                top: 15px;
+                right: 15px;
+                padding: 5px 12px;
+            }
+
+            .main-nav {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            nav ul {
+                flex-direction: column;
+                width: 100%;
+                gap: 5px;
+            }
+
+            nav ul li a {
+                text-align: center;
+                padding: 12px;
+            }
+
+            .submenu {
+                position: static;
+                opacity: 1;
+                visibility: visible;
+                transform: none;
+                background: transparent;
+                border: none;
+                padding: 5px 0 5px 20px;
+            }
+
+            .stats {
+                flex-direction: column;
+            }
+
+            .menu-toggle {
+                display: block;
+                align-self: flex-end;
+            }
+
+            nav {
+                display: none;
+                width: 100%;
+            }
+
+            nav.active {
+                display: block;
+            }
+        }
+
+        /* Анимации */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes textGlow {
+            0% { text-shadow: 0 2px 10px rgba(255, 153, 0, 0.2); }
+            100% { text-shadow: 0 2px 20px rgba(255, 204, 0, 0.4); }
+        }
+
+        /* Подсветка важных элементов */
+        .highlight {
+            color: var(--accent-color);
+            font-weight: 500;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code&display=swap" rel="stylesheet">
+</head>
+<body>     
+    <!-- Контейнер для частиц -->
+    <div id="particles-js"></div>
+    
+    <div class="wrapper">
+        <header class="container">
+            <div class="main-nav">
+<a class="logo" style="position: relative; display: inline-block;">
+    MixerCheck
+    <span style="position: absolute; top: 0px; right: -25px; background: linear-gradient(45deg, #ff9900, #ffcc00); color: #000; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 8px; transform: rotate(12deg); box-shadow: 0 2px 6px rgba(255,153,0,0.4); border: 1px solid #ffcc00; z-index: 10; text-transform: uppercase; opacity: 0.9;">
+        BETA
+    </span>
+</a>
+                
+                <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+                
+<nav id="main-menu">
+    <ul>
+        <li><a href="index.html" onclick="navigateTo('index.html', this)">Everything</a></li>
+        <li><a href="Sy.html" onclick="navigateTo('Sy.html', this)">System Informer</a></li>
+<li class="active"><a href="PS.html" onclick="navigateTo('Sy.html', this)">Powershell</a></li>
+    </ul>
+</nav>
+                </nav>
+            </div>
+        </header> 
+    </div>
+    
+    <div class="container">
+        <h1></h1>
+        <div class="panel">
+            <h3 class="panel-title">Автоматическая проверка логов </h3>
+            <button class="copy-btn" data-label="⎘" onclick="copyPanelContent(this)">Копировать</button>
+            <div class="panel-content">$ErrorActionPreference="SilentlyContinue";$output="$env:USERPROFILE\Desktop\checklogs.txt";do{$logsPath=Read-Host "Введите путь к папке с логами Minecraft";if(!(Test-Path $logsPath)){Write-Host "Путь не найден! Попробуйте снова."}}until(Test-Path $logsPath);$dateFilter=(Get-Date).AddMonths(-2);"=============================================`r`n             АНАЛИЗ ЛОГОВ MINECRAFT`r`n                $(Get-Date -Format 'dd.MM.yyyy HH:mm')`r`n                  by Masileka`r`n=============================================`r`n`r`nПуть к логам: $logsPath`r`nВремя анализа: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')`r`nФильтр по дате: с $($dateFilter.ToString('yyyy-MM-dd'))`r`n`r`n=============================================`r`n             НАЙДЕННЫЕ НИКНЕЙМЫ`r`n=============================================">$output;$uniqueUsernames=@{};Get-ChildItem $logsPath -Recurse -Include "*.log","*.gz" -ErrorAction SilentlyContinue|Where-Object{$_.LastWriteTime -ge $dateFilter}|ForEach-Object{try{if($_.Extension -eq '.gz'){$stream=[System.IO.Compression.GzipStream]::new([System.IO.File]::OpenRead($_.FullName),[System.IO.Compression.CompressionMode]::Decompress);$reader=[System.IO.StreamReader]::new($stream);while(-not$reader.EndOfStream){$line=$reader.ReadLine();if($line -match 'setting user:\s*(\S+)'){$nickname=$matches[1].Trim();$uniqueUsernames[$nickname]=$true}};$reader.Close();$stream.Close()}else{$content=Get-Content $_.FullName -ErrorAction SilentlyContinue;if($content){$content|ForEach-Object{if($_ -match 'setting user:\s*(\S+)'){$nickname=$matches[1].Trim();$uniqueUsernames[$nickname]=$true}}}}}catch{}};if($uniqueUsernames.Count -gt 0){$uniqueUsernames.Keys|Sort-Object|ForEach-Object{$_>>$output}}else{"Не найдено никнеймов">>$output};"`r`n`r`n=============================================`r`n             НАЙДЕННЫЕ IP-АДРЕСА`r`n=============================================">>$output;$uniqueIPs=@{};Get-ChildItem $logsPath -Recurse -Include "*.log","*.gz" -ErrorAction SilentlyContinue|Where-Object{$_.LastWriteTime -ge $dateFilter}|ForEach-Object{try{if($_.Extension -eq '.gz'){$stream=[System.IO.Compression.GzipStream]::new([System.IO.File]::OpenRead($_.FullName),[System.IO.Compression.CompressionMode]::Decompress);$reader=[System.IO.StreamReader]::new($stream);while(-not$reader.EndOfStream){$line=$reader.ReadLine();if($line -match 'Connecting to\s*([^\s,]+)'){$ip=$matches[1].Trim();$uniqueIPs[$ip]=$true}};$reader.Close();$stream.Close()}else{$content=Get-Content $_.FullName -ErrorAction SilentlyContinue;if($content){$content|ForEach-Object{if($_ -match 'Connecting to\s*([^\s,]+)'){$ip=$matches[1].Trim();$uniqueIPs[$ip]=$true}}}}}catch{}};if($uniqueIPs.Count -gt 0){$uniqueIPs.Keys|Sort-Object|ForEach-Object{$_>>$output}}else{"Не найдено IP-адресов">>$output};$fileCount=(Get-ChildItem $logsPath -Recurse -Include "*.log","*.gz" -ErrorAction SilentlyContinue|Where-Object{$_.LastWriteTime -ge $dateFilter}).Count;"`r`n`r`n=============================================`r`n              СТАТИСТИКА АНАЛИЗА`r`n=============================================`r`nУникальных никнеймов: $($uniqueUsernames.Count)`r`nУникальных IP-адресов: $($uniqueIPs.Count)`r`nОбработано файлов: $fileCount`r`n`r`nАнализ завершен: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')">>$output;Write-Host "Готово! Результат сохранен в: $output" -ForegroundColor Green
+ </div>
+ </div>
+<footer>
+    Mixergrief &copy; 2025 | <a href="https://vk.com/jodkasf" style="color: inherit; text-decoration: none;">Разработчик: zuazuga (Кликабельно)</a> 
+
+</footer>
+
+    <!-- Подключаем библиотеку particles.js -->
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script>
+        // Инициализация частиц
+        particlesJS('particles-js', {
+            particles: {
+                number: {
+                    value: 80,
+                    density: {
+                        enable: true,
+                        value_area: 800
+                    }
+                },
+                color: {
+                    value: "#ffffff"
+                },
+                shape: {
+                    type: "circle",
+                    stroke: {
+                        width: 0,
+                        color: "#000000"
+                    }
+                },
+                opacity: {
+                    value: 0.3,
+                    random: true,
+                    anim: {
+                        enable: true,
+                        speed: 1,
+                        opacity_min: 0.1,
+                        sync: false
+                    }
+                },
+                size: {
+                    value: 3,
+                    random: true,
+                    anim: {
+                        enable: true,
+                        speed: 2,
+                        size_min: 0.1,
+                        sync: false
+                    }
+                },
+                line_linked: {
+                    enable: true,
+                    distance: 150,
+                    color: "#ffffff",
+                    opacity: 0.2,
+                    width: 1
+                },
+                move: {
+                    enable: true,
+                    speed: 1,
+                    direction: "none",
+                    random: true,
+                    straight: false,
+                    out_mode: "out",
+                    bounce: false,
+                    attract: {
+                        enable: false,
+                        rotateX: 600,
+                        rotateY: 1200
+                    }
+                }
+            },
+            interactivity: {
+                detect_on: "canvas",
+                events: {
+                    onhover: {
+                        enable: true,
+                        mode: "grab"
+                    },
+                    onclick: {
+                        enable: true,
+                        mode: "push"
+                    },
+                    resize: true
+                },
+                modes: {
+                    grab: {
+                        distance: 140,
+                        line_linked: {
+                            opacity: 0.5
+                        }
+                    },
+                    push: {
+                        particles_nb: 4
+                    }
+                }
+            },
+            retina_detect: true
+        });
+
+        function copyPanelContent(btn) {
+            const originalText = 'Копировать';
+            const copiedText = '✓ Скопировано!';
+
+            const panelContent = btn.parentNode.querySelector('.panel-content').textContent;
+
+            navigator.clipboard.writeText(panelContent).then(() => {
+                btn.textContent = copiedText;
+                btn.removeAttribute('data-label');
+                btn.classList.add('copied');
+
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.setAttribute('data-label', '⎘');
+                    btn.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                console.error('Ошибка копирования: ', err);
+                btn.textContent = 'Ошибка';
+                btn.removeAttribute('data-label');
+            });
+        }
+
+        // Функция для мобильного меню
+        function toggleMenu() {
+            const menu = document.getElementById('main-menu');
+            menu.classList.toggle('active');
+        }
+
+        // Добавляем небольшую задержку для последовательной анимации панелей
+        document.addEventListener('DOMContentLoaded', () => {
+            const panels = document.querySelectorAll('.panel');
+            panels.forEach((panel, index) => {
+                panel.style.animationDelay = `${index * 0.1}s`;
+            });
+            
+            // Анимация для статистических карточек
+            const statCards = document.querySelectorAll('.stat-card');
+            statCards.forEach((card, index) => {
+                card.style.animationDelay = `${0.5 + index * 0.1}s`;
+            });
+        });
+    </script>
+</body>
+</html>
